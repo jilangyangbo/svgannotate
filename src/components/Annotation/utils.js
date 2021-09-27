@@ -29,7 +29,7 @@ export function getTxtWidth(text, fontSize) {
   return unitWidth
 }
 
-export function getRealWith(content, font) {
+export function getRealWith(content, font, isLeft) {
   if (!content) {
     return 0
   }
@@ -38,9 +38,9 @@ export function getRealWith(content, font) {
   dom.style.visibility = 'hidden'
   dom.style.fontSize = `${font || 16}px`
   // 添加一个中文字符避免开始字符如果是 \r\n 不显示空格导致计算偏差
-  dom.textContent = `中${content}`
+  dom.textContent = `${isLeft ? '' : '中'}${content}文`
   document.body.appendChild(dom)
-  const width = dom.clientWidth - font
+  const width = dom.clientWidth - font * (isLeft ? 1 : 2)
   document.body.removeChild(dom)
   return width
 }
@@ -48,7 +48,7 @@ export function getRealWith(content, font) {
 const getNewEndIndex = (startIndex, endIndex, enList) => {
   let newEndIndex = endIndex
   const remainList = []
-  enList.forEach(item => {
+  enList.forEach((item) => {
     if (item.endIndex > endIndex && item.startIndex > startIndex) {
       // 获取换行的实体
       if (item.startIndex < newEndIndex) {
@@ -92,22 +92,29 @@ export function getSpan({ endIndex, fontSize, rowMaxWidth, content, list }) {
   const startIndex = endIndex
   const tempEndIndex = startIndex + span.length
   // 当前行的实体
-  const enList = list.filter(item => {
+  const enList = list.filter((item) => {
     return item.startIndex >= startIndex && item.startIndex <= tempEndIndex
   })
 
-  const { remainList, newEndIndex } = getNewEndIndex(startIndex, tempEndIndex, enList)
+  const { remainList, newEndIndex } = getNewEndIndex(
+    startIndex,
+    tempEndIndex,
+    enList
+  )
 
   const newSpan = span.substring(0, newEndIndex - startIndex)
 
   const labelList = []
   let entRow = 0
-  remainList.forEach(item => {
+  remainList.forEach((item) => {
     const leftContent = remain.substring(0, item.startIndex - startIndex)
     // 选中文字左边界 左边间隔一个字符宽度 防止顶部标签出左边界限
-    item.leftX = getRealWith(leftContent, fontSize) + fontSize
+    item.leftX = getRealWith(leftContent, fontSize, true) + fontSize
     // 选中文字宽度
-    item.width = getRealWith(content.substring(item.startIndex, item.endIndex), fontSize)
+    item.width = getRealWith(
+      content.substring(item.startIndex, item.endIndex),
+      fontSize
+    )
     item.rigthX = item.leftX + item.width
     item.labelWith = labelFontSize * item.labelText?.length + 4
     item.labelLeftX = item.leftX + (item.width - item.labelWith) / 2
@@ -119,7 +126,10 @@ export function getSpan({ endIndex, fontSize, rowMaxWidth, content, list }) {
     while (flag) {
       if (
         labelList.some(
-          label => label.minX < item.maxX && label.maxX > item.minX && label.floor == item.floor
+          (label) =>
+            label.minX < item.maxX &&
+            label.maxX > item.minX &&
+            label.floor == item.floor
         )
       ) {
         item.floor++

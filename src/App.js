@@ -1,5 +1,5 @@
-import logo from './logo.svg';
-import './App.css';
+import logo from './logo.svg'
+import './App.css'
 
 function App() {
   return (
@@ -17,9 +17,12 @@ function App() {
         >
           Learn React
         </a>
+        <a className="App-link" href="/mark">
+          标注
+        </a>
       </header>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App

@@ -1,7 +1,7 @@
 /* eslint-disable no-loop-func */
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Modal, Radio } from 'antd'
-import style from './index.less'
+import style from './index.module.scss'
 import { getSpan } from './utils'
 
 const SvgContentIndex = ({
@@ -26,7 +26,18 @@ const SvgContentIndex = ({
   const svgRef = useRef()
   const childRef = useRef()
   const divRef = useRef()
+  const selectLabelRef = useRef(selectLabel)
+  useEffect(() => {
+    selectLabelRef.current = selectLabel
+  }, [selectLabel])
 
+  const hoverRelationIdRef = useRef(hoverRelationId)
+  useEffect(() => {
+    hoverRelationIdRef.current = hoverRelationId
+  }, [hoverRelationId])
+
+  console.log('=useRef==')
+  console.log('hoverRelationId===',hoverRelationId);
   const onCancelAddRelation = () => {
     setAddRealtionPath()
     svgRef.current.onmousemove = null
@@ -35,22 +46,27 @@ const SvgContentIndex = ({
     setToLabel({})
     setAddRelationVisible(false)
   }
-  const onClickLabel = item => {
-    if (selectLabel && selectLabel.id) {
-      if (selectLabel.id == item.id) {
+  const onClickLabel = useCallback((item) => {
+    console.log('onClickLabel==item=', item)
+    let fromLabel = selectLabelRef.current
+    if (fromLabel && fromLabel.id) {
+      if (fromLabel.id == item.id) {
         onCancelAddRelation()
       } else {
         setToLabel(item)
         const options = connections.filter(
-          option => option.fromLabelId == selectLabel.labelId && option.toLabelId == item.labelId
+          (option) =>
+            option.fromLabelId == fromLabel.labelId &&
+            option.toLabelId == item.labelId
         )
         setOptionList(options)
         setAddRelationVisible(true)
       }
     } else {
+      console.log('else==selectLabel=', selectLabelRef.current)
       setSelectLabel(item)
       setAddRealtionPath(null)
-      svgRef.current.onmousemove = e => {
+      svgRef.current.onmousemove = (e) => {
         let startX = item.labelLeftX
         if (e.offsetX < item.labelLeftX + item.labelWith / 2) {
           startX = item.labelRightX
@@ -69,18 +85,19 @@ const SvgContentIndex = ({
         )
         setAddRealtionPath(path)
       }
-      document.body.oncontextmenu = e => {
+      document.body.oncontextmenu = (e) => {
         e.preventDefault()
         onCancelAddRelation()
       }
     }
-  }
-  const onSelectRelation = e => {
-    const label = e.target.value
+  }, [])
+  const onSelectRelation = (e) => {
+    const relation = e.target.value
     const data = {
       fromEntity: selectLabel.id,
       toEntity: toLabel.id,
-      connectionId: label.id,
+      connectionId: relation.id,
+      relationText: relation.text,
     }
     onAddRelation(data)
     onCancelAddRelation()
@@ -92,7 +109,10 @@ const SvgContentIndex = ({
     const rectHeight = fontSize * 1.2 // 文字背景框高度
     // 标签绝对Y坐标(背景框的Y坐标)
     // 注:fontSize * 0.5 为 文字的行间距;理论上应该为0.4,但是测试发现text 默认下移0.1*fontsize
-    const RectY = rowNum * lineHeight + (totalEntRow + entRow) * labelHeight + fontSize * 0.5
+    const RectY =
+      rowNum * lineHeight +
+      (totalEntRow + entRow) * labelHeight +
+      fontSize * 0.5
     const labelMaxY = labelHeight * (item.floor - 1) * -1 // 标签相对底部Y坐标
 
     const labelTopY = RectY - labelHeight * item.floor
@@ -104,11 +124,17 @@ const SvgContentIndex = ({
           transform: `translate(${item.leftX}px, ${RectY}px)`,
         }}
       >
-        <rect rx="3" height={rectHeight} width={item.width} style={{ fill: item.labelColor }} />
+        <rect
+          rx="3"
+          height={rectHeight}
+          width={item.width}
+          style={{ fill: item.labelColor }}
+        />
         <g
           style={{
-            transform: `translate(${(item.width - item.labelText?.length * labelFontSize - 4) /
-              2}px,${-labelHeight * item.floor}px)`,
+            transform: `translate(${
+              (item.width - item.labelText?.length * labelFontSize - 4) / 2
+            }px,${-labelHeight * item.floor}px)`,
           }}
         >
           <rect
@@ -121,8 +147,12 @@ const SvgContentIndex = ({
           <text
             dx="2"
             dy={`${labelFontSize}px`}
-            style={{ fontSize: `${labelFontSize}px`, userSelect: 'none', cursor: 'pointer' }}
-            onContextMenu={e => {
+            style={{
+              fontSize: `${labelFontSize}px`,
+              userSelect: 'none',
+              cursor: 'pointer',
+            }}
+            onContextMenu={(e) => {
               e.preventDefault()
               onRemoveLabel(item.id)
             }}
@@ -134,10 +164,13 @@ const SvgContentIndex = ({
           </text>
         </g>
         <path
-          d={`M0 ${labelMaxY}  Q-3 ${labelMaxY - 4} ${item.width / 4} ${labelMaxY -
-            3} T${item.width / 2} ${labelMaxY - 6} M${item.width} ${labelMaxY}   Q${item.width +
-            3} ${labelMaxY - 4} ${(item.width / 4) * 3} ${labelMaxY - 3} T${item.width /
-            2} ${labelMaxY - 6}`}
+          d={`M0 ${labelMaxY}  Q-3 ${labelMaxY - 4} ${item.width / 4} ${
+            labelMaxY - 3
+          } T${item.width / 2} ${labelMaxY - 6} M${
+            item.width
+          } ${labelMaxY}   Q${item.width + 3} ${labelMaxY - 4} ${
+            (item.width / 4) * 3
+          } ${labelMaxY - 3} T${item.width / 2} ${labelMaxY - 6}`}
           stroke="green"
           fill="none"
           strokeWidth="1"
@@ -149,10 +182,12 @@ const SvgContentIndex = ({
   }
 
   const render = () => {
+    console.log('==render=')
     const newContent = []
     const fontSizeStr = window.getComputedStyle(svgRef.current).fontSize
     const fontSize = parseInt(fontSizeStr.substr(0, fontSizeStr.length - 2), 10)
-    const rowMaxWidth = divRef.current.getBoundingClientRect().width - fontSize * 2
+    const rowMaxWidth =
+      divRef.current.getBoundingClientRect().width - fontSize * 2
     const lineHeight = fontSize * 1.5
     const labelFontSize = fontSize - 2 // 标签字体
     const labelHeight = labelFontSize + 12 // 标签高度(文字加大括号)
@@ -162,13 +197,14 @@ const SvgContentIndex = ({
     let rowNum = 0
     const rowContentList = []
     let allEnlist = []
+    const tmpList = list.map((o) => ({ ...o }))
     while (endIndex < content.length && rowNum < content.length) {
       const { span, enList, entRow } = getSpan({
         endIndex,
         fontSize,
         rowMaxWidth,
         content,
-        list,
+        list: tmpList,
       })
       rowContentList.push({ span, enList, entRow, rowNum })
 
@@ -178,57 +214,85 @@ const SvgContentIndex = ({
     }
     // 计算所有的关系图
     const allRelationList = []
-    rowContentList.forEach(row => {
+    rowContentList.forEach((row) => {
       const rowRelationList = []
       if (row.enList && row.enList.length > 0) {
-        row.enList.forEach(item => {
+        row.enList.forEach((item) => {
           if (item.relationList && item.relationList.length > 0) {
-            item.relationList.forEach(relation => {
+            item.relationList.forEach((relation) => {
               // 已经计算过的不在计算
-              if (allRelationList.some(re => re.id == relation.id)) {
+              if (allRelationList.some((re) => re.id == relation.id)) {
                 return
               }
               let matchEn = {}
               if (relation.fromEntity == item.id) {
-                matchEn = allEnlist.filter(en => en.id == relation.toEntity)[0]
+                matchEn = allEnlist.filter(
+                  (en) => en.id == relation.toEntity
+                )[0]
                 if (matchEn.labelLeftX < item.labelLeftX) {
                   relation.leftX = matchEn.labelLeftX
                   relation.rightX = item.labelRightX
-                  relation.fromPoint = { x: relation.rightX, c: relation.rightX + relationFontSize }
-                  relation.toPoint = { x: relation.leftX, c: relation.leftX - relationFontSize }
+                  relation.fromPoint = {
+                    x: relation.rightX,
+                    c: relation.rightX + relationFontSize,
+                  }
+                  relation.toPoint = {
+                    x: relation.leftX,
+                    c: relation.leftX - relationFontSize,
+                  }
                 } else {
                   relation.leftX = item.labelLeftX
                   relation.rightX = matchEn.labelRightX
-                  relation.fromPoint = { x: relation.leftX, c: relation.leftX - relationFontSize }
-                  relation.toPoint = { x: relation.rightX, c: relation.rightX + relationFontSize }
+                  relation.fromPoint = {
+                    x: relation.leftX,
+                    c: relation.leftX - relationFontSize,
+                  }
+                  relation.toPoint = {
+                    x: relation.rightX,
+                    c: relation.rightX + relationFontSize,
+                  }
                 }
               } else {
-                matchEn = allEnlist.filter(en => en.id == relation.fromEntity)[0]
+                matchEn = allEnlist.filter(
+                  (en) => en.id == relation.fromEntity
+                )[0]
                 if (matchEn.labelLeftX < item.labelLeftX) {
                   relation.leftX = matchEn.labelLeftX
                   relation.rightX = item.labelRightX
-                  relation.fromPoint = { x: relation.leftX, c: relation.leftX - relationFontSize }
-                  relation.toPoint = { x: relation.rightX, c: relation.rightX + relationFontSize }
+                  relation.fromPoint = {
+                    x: relation.leftX,
+                    c: relation.leftX - relationFontSize,
+                  }
+                  relation.toPoint = {
+                    x: relation.rightX,
+                    c: relation.rightX + relationFontSize,
+                  }
                 } else {
                   relation.leftX = item.labelLeftX
                   relation.rightX = matchEn.labelRightX
-                  relation.fromPoint = { x: relation.rightX, c: relation.rightX + relationFontSize }
-                  relation.toPoint = { x: relation.leftX, c: relation.leftX - relationFontSize }
+                  relation.fromPoint = {
+                    x: relation.rightX,
+                    c: relation.rightX + relationFontSize,
+                  }
+                  relation.toPoint = {
+                    x: relation.leftX,
+                    c: relation.leftX - relationFontSize,
+                  }
                 }
               }
-
+              relation.topY = 0
               relation.floor = 1
               let flag = true
               while (flag) {
                 if (
                   row.enList.some(
-                    label =>
+                    (label) =>
                       label.minX < relation.rightX &&
                       label.maxX > relation.leftX &&
                       label.floor == relation.floor
                   ) ||
                   rowRelationList.some(
-                    label =>
+                    (label) =>
                       label.leftX < relation.rightX &&
                       label.rightX > relation.leftX &&
                       label.floor == relation.floor
@@ -256,15 +320,19 @@ const SvgContentIndex = ({
     const enPathList = []
     const relationTextList = []
     const relationPathList = []
-    rowContentList.forEach(row => {
+    rowContentList.forEach((row) => {
       // 加入文章内容
       newContent.push(
-        <tspan x={fontSize} dy={fontSize * 1.5 + row.entRow * (fontSize + 10)} key={row.rowNum}>
+        <tspan
+          x={fontSize}
+          dy={fontSize * 1.5 + row.entRow * (fontSize + 10)}
+          key={row.rowNum}
+        >
           {row.span}
         </tspan>
       )
       // 加入实体标签
-      row.enList.forEach(item => {
+      row.enList.forEach((item) => {
         const { labelTopY, labelPath } = genLabel(
           item,
           fontSize,
@@ -275,7 +343,7 @@ const SvgContentIndex = ({
         enPathList.push(labelPath)
         // 计算关系的起始标签的坐标
         if (item.relationList && item.relationList.length > 0) {
-          item.relationList.forEach(relation => {
+          item.relationList.forEach((relation) => {
             // 计算标签关联的关系的位置
             for (let i = 0; i < allRelationList.length; i++) {
               if (allRelationList[i].id == relation.id) {
@@ -310,13 +378,14 @@ const SvgContentIndex = ({
     })
 
     // 绘制关系图
-    allRelationList.forEach(item => {
+    allRelationList.forEach((item) => {
       const relationtext = (
         <g
           key={item.id}
           style={{
-            transform: `translate(${item.leftX + item.leftTextX}px, ${item.topY -
-              relationFontSize / 2}px)`,
+            transform: `translate(${item.leftX + item.leftTextX}px, ${
+              item.topY - relationFontSize / 2
+            }px)`,
           }}
         >
           <rect
@@ -326,8 +395,12 @@ const SvgContentIndex = ({
           />
           <text
             y={relationFontSize}
-            style={{ fontSize: `${relationFontSize}px`, userSelect: 'none', cursor: 'pointer' }}
-            onContextMenu={e => {
+            style={{
+              fontSize: `${relationFontSize}px`,
+              userSelect: 'none',
+              cursor: 'pointer',
+            }}
+            onContextMenu={(e) => {
               e.preventDefault()
               onDeleteRelation(item.id)
             }}
@@ -335,7 +408,8 @@ const SvgContentIndex = ({
               setHoverRelationId(item.id)
             }}
             onMouseOut={() => {
-              setHoverRelationId('')
+              setHoverRelationId
+              ('')
             }}
           >
             {item.relationText}
@@ -348,7 +422,9 @@ const SvgContentIndex = ({
       const relationPath = (
         <g key={item.id}>
           <path
-            className={` ${style.relationPath} ${hoverRelationId == item.id ? style.hover : ''}`}
+            className={` ${style.relationPath} ${
+              hoverRelationIdRef.current == item.id ? style.hover : ''
+            }`}
             d={`M${item.fromPoint.x} ${item.fromPoint.y}
            C ${item.fromPoint.c} ${item.topY},${item.fromPoint.c} ${item.topY} , ${item.fromPoint.x} ${item.topY} 
            L ${item.toPoint.x} ${item.topY} 
@@ -374,8 +450,8 @@ const SvgContentIndex = ({
 
   useEffect(() => {
     render()
-  }, [content, list, hoverRelationId, selectLabel])
-  const onMouseUp = e => {
+  }, [content, list])
+  const onMouseUp = (e) => {
     const mouseX = e.pageX || e.clientX // + document.documentElement.scrollLeft || 0 + document.body.scroolLeft || 0 // e.pageX ||
     const mouseY = e.pageY || e.clientY // + document.documentElement.scrollTop || 0 + document.body.scrollTop || 0 // e.pageY// ||
     const text = window.getSelection().toString()
@@ -395,8 +471,11 @@ const SvgContentIndex = ({
         mouseX,
         mouseY,
       }
+      console.log('annotateData===',annotateData);
       if (
-        (start == 0 && text.replace(/\s+/g, ' ') != content.substr(0, end).replace(/\s+/g, ' ')) ||
+        (start == 0 &&
+          text.replace(/\s+/g, ' ') !=
+            content.substr(0, end).replace(/\s+/g, ' ')) ||
         end > content.length
       ) {
         return
@@ -407,7 +486,14 @@ const SvgContentIndex = ({
   return (
     <div className={style.svgContent} ref={divRef}>
       <svg width="100%" ref={svgRef}>
-        <marker id="markerArrow" markerWidth="8" markerHeight="10" refX="5" refY="6" orient="auto">
+        <marker
+          id="markerArrow"
+          markerWidth="8"
+          markerHeight="10"
+          refX="5"
+          refY="6"
+          orient="auto"
+        >
           <path d="M0,4 L0,8 L6,6 L0,4 L0,8" />
         </marker>
         {selectLabel && addRealtionPath}
@@ -416,7 +502,7 @@ const SvgContentIndex = ({
         {relationTextGroup}
         <text
           ref={childRef}
-          onMouseUp={e => {
+          onMouseUp={(e) => {
             onMouseUp(e, childRef)
             // setselectLabel({})
           }}
@@ -435,16 +521,21 @@ const SvgContentIndex = ({
           <div className={style.content}>
             <div>
               <span style={{ fontWeight: 'bold' }}>From: </span>
-              <span style={{ color: selectLabel.labelColor }}>{selectLabel.labelText}</span>:
-              {selectLabel.text}
+              <span style={{ color: selectLabel.labelColor }}>
+                {selectLabel.labelText}
+              </span>
+              :{selectLabel.text}
             </div>
             <div>
               <span style={{ fontWeight: 'bold' }}> To: </span>
-              <span style={{ color: toLabel.labelColor }}>{toLabel.labelText}</span>:{toLabel.text}
+              <span style={{ color: toLabel.labelColor }}>
+                {toLabel.labelText}
+              </span>
+              :{toLabel.text}
             </div>
             <div className={style.label}>选择关系:</div>
             <Radio.Group onChange={onSelectRelation}>
-              {optionList.map(option => {
+              {optionList.map((option) => {
                 return (
                   <Radio value={option} key={option.id} data>
                     {option.text}
