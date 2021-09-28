@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Radio, message } from 'antd'
+import { Radio } from 'antd'
 // import ShowContent from './content'
 import ShowContent from './svgContent'
 import style from './index.module.scss'
@@ -54,6 +54,11 @@ const Content = ({
     if (!annotateData && !anData) {
       return
     }
+    // 修改 删除之前的
+    if (annotateData.id) {
+      console.log('onSelectLabel annotateData.id===', annotateData.id)
+      onDeleteEntity(annotateData.id)
+    }
     const enData = annotateData || anData
     const data = {
       ...enData,
@@ -91,10 +96,13 @@ const Content = ({
           >
             <div className={style.title}>选择标签</div>
             <div className={style.content}>
-              <Radio.Group onChange={(e) => onSelectLabel(e.target.value)}>
+              <Radio.Group
+                onChange={(e) => onSelectLabel(e.target.data)}
+                value={annotateData?.labelId}
+              >
                 {(labels || []).map((item) => {
                   return (
-                    <Radio value={item} key={item.id} data>
+                    <Radio value={item.id} key={item.id} data={item}>
                       <span>{`${item.text}`}</span>
                     </Radio>
                   )

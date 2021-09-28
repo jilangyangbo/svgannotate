@@ -27,6 +27,7 @@ const SvgContentIndex = ({
   const childRef = useRef()
   const divRef = useRef()
   const selectLabelRef = useRef(selectLabel)
+  const [selectRelation, setSelectRelation] = useState({})
   useEffect(() => {
     selectLabelRef.current = selectLabel
   }, [selectLabel])
@@ -36,21 +37,22 @@ const SvgContentIndex = ({
     hoverRelationIdRef.current = hoverRelationId
   }, [hoverRelationId])
 
-  console.log('=useRef==')
-  console.log('hoverRelationId===',hoverRelationId);
   const onCancelAddRelation = () => {
     setAddRealtionPath()
     svgRef.current.onmousemove = null
     setSelectLabel({})
     document.body.oncontextmenu = null
     setToLabel({})
+    setSelectRelation({})
     setAddRelationVisible(false)
   }
-  const onClickLabel = useCallback((item) => {
-    console.log('onClickLabel==item=', item)
+  const onClickLabel = useCallback((e, item) => {
     let fromLabel = selectLabelRef.current
     if (fromLabel && fromLabel.id) {
       if (fromLabel.id == item.id) {
+        item.mouseX = e.pageX || e.clientX
+        item.mouseY = e.pageY || e.clientY
+        onSelectEn(item)
         onCancelAddRelation()
       } else {
         setToLabel(item)
@@ -92,15 +94,30 @@ const SvgContentIndex = ({
     }
   }, [])
   const onSelectRelation = (e) => {
-    const relation = e.target.value
+    const relation = e.target.data
     const data = {
       fromEntity: selectLabel.id,
       toEntity: toLabel.id,
       connectionId: relation.id,
       relationText: relation.text,
     }
+    if (selectRelation.id) {
+      data.id = selectRelation.id
+    }
     onAddRelation(data)
     onCancelAddRelation()
+  }
+  const onClickRelation = (item) => {
+    setSelectRelation(item)
+    setSelectLabel(item.fromLabel)
+    setToLabel(item.toLabel)
+    const options = connections.filter(
+      (option) =>
+        option.fromLabelId == item.fromLabel.labelId &&
+        option.toLabelId == item.toLabel.labelId
+    )
+    setOptionList(options)
+    setAddRelationVisible(true)
   }
   const genLabel = (item, fontSize, totalEntRow, entRow, rowNum) => {
     const labelFontSize = fontSize - 2 // 标签字体
@@ -156,8 +173,8 @@ const SvgContentIndex = ({
               e.preventDefault()
               onRemoveLabel(item.id)
             }}
-            onClick={() => {
-              onClickLabel(item)
+            onClick={(e) => {
+              onClickLabel(e, item)
             }}
           >
             {item.labelText}
@@ -226,9 +243,11 @@ const SvgContentIndex = ({
               }
               let matchEn = {}
               if (relation.fromEntity == item.id) {
+                relation.fromLabel = item
                 matchEn = allEnlist.filter(
                   (en) => en.id == relation.toEntity
                 )[0]
+                relation.toLabel = matchEn
                 if (matchEn.labelLeftX < item.labelLeftX) {
                   relation.leftX = matchEn.labelLeftX
                   relation.rightX = item.labelRightX
@@ -256,6 +275,8 @@ const SvgContentIndex = ({
                 matchEn = allEnlist.filter(
                   (en) => en.id == relation.fromEntity
                 )[0]
+                relation.fromLabel = matchEn
+                relation.toLabel = item
                 if (matchEn.labelLeftX < item.labelLeftX) {
                   relation.leftX = matchEn.labelLeftX
                   relation.rightX = item.labelRightX
@@ -408,8 +429,10 @@ const SvgContentIndex = ({
               setHoverRelationId(item.id)
             }}
             onMouseOut={() => {
-              setHoverRelationId
-              ('')
+              setHoverRelationId('')
+            }}
+            onClick={(e) => {
+              onClickRelation(item)
             }}
           >
             {item.relationText}
@@ -450,7 +473,7 @@ const SvgContentIndex = ({
 
   useEffect(() => {
     render()
-  }, [content, list])
+  }, [content, list, hoverRelationId])
   const onMouseUp = (e) => {
     const mouseX = e.pageX || e.clientX // + document.documentElement.scrollLeft || 0 + document.body.scroolLeft || 0 // e.pageX ||
     const mouseY = e.pageY || e.clientY // + document.documentElement.scrollTop || 0 + document.body.scrollTop || 0 // e.pageY// ||
@@ -471,7 +494,7 @@ const SvgContentIndex = ({
         mouseX,
         mouseY,
       }
-      console.log('annotateData===',annotateData);
+      console.log('annotateData===', annotateData)
       if (
         (start == 0 &&
           text.replace(/\s+/g, ' ') !=
@@ -534,10 +557,13 @@ const SvgContentIndex = ({
               :{toLabel.text}
             </div>
             <div className={style.label}>选择关系:</div>
-            <Radio.Group onChange={onSelectRelation}>
+            <Radio.Group
+              onChange={onSelectRelation}
+              value={selectRelation?.connectionId}
+            >
               {optionList.map((option) => {
                 return (
-                  <Radio value={option} key={option.id} data>
+                  <Radio value={option.id} key={option.id} data={option}>
                     {option.text}
                   </Radio>
                 )

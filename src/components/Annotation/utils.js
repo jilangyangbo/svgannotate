@@ -11,7 +11,7 @@ export function getTxtWidth(text, fontSize) {
 
   if (chinaRegx.test(text)) {
     unitWidth = fontSize
-  } else if (/\s/.test(text)) {
+  } else if (/\s/.test(text) && '　' != text) {
     unitWidth = fontSize / 4
   } else if (smallEnglishRegx.test(text)) {
     unitWidth = fontSize / 2
@@ -76,7 +76,11 @@ export function getSpan({ endIndex, fontSize, rowMaxWidth, content, list }) {
   while (i < remain.length && totalWith < rowMaxWidth) {
     let txtWidth = getTxtWidth(remain[i], fontSize)
     if (i != 0) {
-      if (remain[i - 1] == remain[i] && /\s/.test(remain[i])) {
+      if (
+        remain[i - 1] == remain[i] &&
+        /\s/.test(remain[i]) &&
+        '　' != remain[i]
+      ) {
         txtWidth = 0
       }
     }
