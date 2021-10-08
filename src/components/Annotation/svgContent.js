@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Modal, Radio } from 'antd'
 import style from './index.module.scss'
-import { getSpan } from './utils'
+import { getSpan, getKeyValue } from './utils'
 
 const SvgContentIndex = ({
   content,
@@ -474,6 +474,17 @@ const SvgContentIndex = ({
   useEffect(() => {
     render()
   }, [content, list, hoverRelationId])
+
+  useEffect(() => {
+    console.table([
+      { key: '入院情况', value: getKeyValue('入院情况', content) },
+      { key: '入院诊断', value: getKeyValue('入院诊断', content) },
+      { key: '出院诊断', value: getKeyValue('出院诊断', content) },
+      { key: '诊疗过程描述', value: getKeyValue('诊疗过程描述', content) },
+      { key: '出院情况', value: getKeyValue('出院情况', content) },
+      { key: '出院医嘱', value: getKeyValue('出院医嘱', content) },
+    ])
+  }, [content])
   const onMouseUp = (e) => {
     const mouseX = e.pageX || e.clientX // + document.documentElement.scrollLeft || 0 + document.body.scroolLeft || 0 // e.pageX ||
     const mouseY = e.pageY || e.clientY // + document.documentElement.scrollTop || 0 + document.body.scrollTop || 0 // e.pageY// ||

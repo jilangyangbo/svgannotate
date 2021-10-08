@@ -77,14 +77,16 @@ export function getSpan({ endIndex, fontSize, rowMaxWidth, content, list }) {
     let txtWidth = getTxtWidth(remain[i], fontSize)
     if (i != 0) {
       if (
-        remain[i - 1] == remain[i] &&
+        /\s/.test(remain[i - 1]) &&
         /\s/.test(remain[i]) &&
         '　' != remain[i]
       ) {
         txtWidth = 0
+        if (remain[i - 1] == '\r' && remain[i] == '\n' && /\S/.test(span)) {
+          totalWith = rowMaxWidth
+        }
       }
     }
-
     if (totalWith + txtWidth <= rowMaxWidth) {
       totalWith += txtWidth
       span += remain[i]
@@ -145,4 +147,68 @@ export function getSpan({ endIndex, fontSize, rowMaxWidth, content, list }) {
     labelList.push(item)
   })
   return { span: newSpan, enList: remainList, entRow }
+}
+export function getKeyValue(key, content) {
+  if (!content) {
+    return ''
+  }
+  const keyList = [
+    '入院情况',
+    '入院诊断',
+    '住院后的治疗及检查情况',
+    '出院诊断',
+    '出院情况及医嘱',
+    '出院嘱',
+    '医师签名',
+  ]
+  const keyObj = {
+    入院情况: ['入院情况'],
+    入院诊断: ['入院诊断'],
+    出院诊断: ['出院诊断'],
+    诊疗过程描述: ['诊疗过程描述', '住院后的治疗及检查情况'],
+    出院情况: ['出院情况', '出院情况及医嘱'],
+    出院医嘱: ['出院医嘱', '出院嘱'],
+  }
+  var result = content
+  let endIndex = content.length - 1
+  if (keyObj[key]) {
+    let res = RegExp('(' + keyObj[key].join('|') + ')[:：]').exec(content)
+    if (res) {
+      result = content.substring(res.index + res[0].length)
+    }else {
+      return''
+    }
+
+    let endRes = RegExp('(' + keyList.join('|') + ')[:：]').exec(result)
+    if (endRes) {
+      endIndex = endRes.index
+    }
+    // let hasKey = false
+    // for (let i = 0; i < keyObj[key].length; i++) {
+    //   let tempIndex = content.indexOf(keyObj[key][i] + '：')
+    //   if (tempIndex == -1) {
+    //     tempIndex = content.indexOf(keyObj[key][i] + ':')
+    //   }
+    //   if (tempIndex > -1) {
+    //     hasKey = true
+    //     tempIndex = tempIndex + keyObj[key][i].length + 1
+    //     result = content.substring(tempIndex)
+    //     break
+    //   }
+    // }
+    // if (!hasKey) {
+    //   return ''
+    // }
+    // for (let i = 0; i < keyList.length; i++) {
+    //   let tempIndex = result.indexOf(keyList[i] + '：')
+    //   if (tempIndex == -1) {
+    //     tempIndex = result.indexOf(keyList[i] + ':')
+    //   }
+    //   if (tempIndex > -1 && tempIndex < endIndex) {
+    //     endIndex = tempIndex
+    //   }
+    // }
+    result = result.substring(0, endIndex).trim()
+  }
+  return result
 }
