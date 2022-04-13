@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Switch, Route } from 'react-router-dom'
+import { HashRouter as Router, Switch, Route } from 'react-router-dom'
 
 import Mark from '@/pages/mark'
 import App from '@/App'
@@ -7,9 +7,6 @@ function Index() {
     <Router>
       <Switch>
         <Route exact path="/">
-          <Mark />
-        </Route>
-        <Route path="/mark">
           <Mark />
         </Route>
       </Switch>
