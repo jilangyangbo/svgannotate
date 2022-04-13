@@ -6,7 +6,9 @@ function Index() {
   return (
     <Router>
       <Switch>
-        <Route exact path="/" component={App}></Route>
+        <Route exact path="/">
+          <Mark />
+        </Route>
         <Route path="/mark">
           <Mark />
         </Route>
